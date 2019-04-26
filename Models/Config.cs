@@ -13,6 +13,7 @@ namespace MusicProcessor.Models
         public string FreqProblemFile { get; set; }
         public string SaveProgramFile { get; set; }
         public int SampleLength { get; set; }
+        public bool UseCustomSampleLength { get; set; }
 
         public static Config Read()
         {

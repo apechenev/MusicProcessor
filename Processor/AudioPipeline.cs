@@ -14,12 +14,14 @@ namespace MusicProcessor.Processor
         private readonly ISamplesLibrary _samplesLibrary;
         private readonly IReadOnlyList<Tuple<string, int>> _sampleToLength;
         private readonly IProgressHandler _progressHandler;
+        private readonly bool _useCustomSampleLength;
 
-        public AudioPipeline(ISamplesLibrary samplesLibrary, IReadOnlyList<Tuple<string, int>> sampleToLength, IProgressHandler progressHandler)
+        public AudioPipeline(ISamplesLibrary samplesLibrary, IReadOnlyList<Tuple<string, int>> sampleToLength, IProgressHandler progressHandler, bool useCustomSampleLength)
         {
             _samplesLibrary = samplesLibrary;
             _sampleToLength = sampleToLength;
             _progressHandler = progressHandler;
+            _useCustomSampleLength = useCustomSampleLength;
         }
 
         public void Process(string outputFile)
@@ -44,37 +46,32 @@ namespace MusicProcessor.Processor
 
                         using (MediaFoundationReader pcmStream = new MediaFoundationReader(path))
                         {
-                            //using (WaveStream pcmStream = WaveFormatConversionStream.CreatePcmStream(reader))
+                            double sampleLengthInMs = _useCustomSampleLength ? pair.Item2 : pcmStream.TotalTime.Milliseconds; // miliseconds
+                            while (sampleLengthInMs > 0)
                             {
-                                double sampleLengthInMs = pair.Item2; // miliseconds
-                                while (sampleLengthInMs > 0)
+                                pcmStream.CurrentTime = TimeSpan.FromMilliseconds(sampleLengthInMs);
+                                TimeSpan lengthInStream = pcmStream.CurrentTime;
+                                pcmStream.CurrentTime = TimeSpan.FromMilliseconds(0);
+
+                                var sampleProvider = (OffsetSampleProvider) pcmStream
+                                    .ToSampleProvider()
+                                    .ToStereo()
+                                    .Take(lengthInStream);
+
+                                int samplesLeft = sampleProvider.TakeSamples;
+                                while (samplesLeft > 0)
                                 {
-                                    pcmStream.CurrentTime = TimeSpan.FromMilliseconds(sampleLengthInMs);
-                                    TimeSpan lengthInStream = pcmStream.CurrentTime;
-                                    pcmStream.CurrentTime = TimeSpan.FromMilliseconds(0);
-
-                                    var sampleProvider = (OffsetSampleProvider) pcmStream
-                                        .ToSampleProvider()
-                                        .ToStereo()
-                                        .Take(lengthInStream);
-
-                                    int samplesLeft = sampleProvider.TakeSamples;
-                                    while (samplesLeft > 0)
+                                    int read = sampleProvider.Read(buf, 0, buf.Length);
+                                    if (read == 0)
                                     {
-                                        int read = sampleProvider.Read(buf, 0, buf.Length);
-                                        if (read == 0)
-                                        {
-                                            break;
-                                        }
-
-                                        samplesLeft -= read;
-                                        audioWriter.WriteSamples(buf, 0, read);
+                                        break;
                                     }
 
-                                    sampleLengthInMs -= lengthInStream.TotalMilliseconds;
+                                    samplesLeft -= read;
+                                    audioWriter.WriteSamples(buf, 0, read);
                                 }
 
-                                audioWriter.Flush();
+                                sampleLengthInMs -= lengthInStream.TotalMilliseconds;
                             }
                         }
 

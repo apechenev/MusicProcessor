@@ -16,9 +16,6 @@ namespace MusicProcessor.ViewModels
         private readonly ShowDialogCommand _saveProgramFileCmd;
         private readonly CreateProgramCommand _createProgramCmd;
         private readonly Config _config;
-
-        private ISamplesLibrary _samplesLibrary;
-
         private int _progressValue = 0;
         private int _maxProgressValue = 100;
 
@@ -27,8 +24,8 @@ namespace MusicProcessor.ViewModels
         public MainViewModel(Config config, ISamplesLibrary samplesLibrary)
         {
             _config = config;
-            _samplesLibrary = samplesLibrary;
-            _samplesLibrary.Load(_config.LibraryFolder);
+            Library = samplesLibrary;
+            Library.Load(_config.LibraryFolder);
             _createProgramCmd = new CreateProgramCommand(this);
 
             _showFolderDialogCmd = new ShowDialogCommand(() => new CommonOpenFileDialog()
@@ -84,19 +81,35 @@ namespace MusicProcessor.ViewModels
             set => _config.SampleLength = value;
         }
 
-        public ISamplesLibrary Library
-        {
-            get
-            {
-                return _samplesLibrary;
-            }
-        }
+        public ISamplesLibrary Library { get; }
 
         public IEnumerable<Tuple<string, string>> LibraryEntries
         {
             get
             {
                 return Library.Entries;
+            }
+        }
+
+        public bool UseCustomSampleLength
+        {
+            get
+            {
+                return _config.UseCustomSampleLength;
+            }
+            set
+            {
+                _config.UseCustomSampleLength = value;
+                NotifyPropertyChanged("UseCustomSampleLength");
+                NotifyPropertyChanged("EnableCustomLength");
+            }
+        }
+
+        public bool EnableCustomLength
+        {
+            get
+            {
+                return _config.UseCustomSampleLength && ProgramCreationOver;
             }
         }
 
@@ -109,7 +122,7 @@ namespace MusicProcessor.ViewModels
             set
             {
                 _config.LibraryFolder = value;
-                _samplesLibrary.Load(_config.LibraryFolder);
+                Library.Load(_config.LibraryFolder);
                 NotifyPropertyChanged("LibraryFolder");
                 NotifyPropertyChanged("LibraryEntries");
             }
@@ -187,6 +200,7 @@ namespace MusicProcessor.ViewModels
                 _saveProgramFileCmd.RaiseCanExecuteChanged();
                 NotifyPropertyChanged("ProgramCreationStart");
                 NotifyPropertyChanged("ProgramCreationOver");
+                NotifyPropertyChanged("EnableCustomLength");
             }
         }
 

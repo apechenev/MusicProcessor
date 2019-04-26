@@ -49,6 +49,11 @@ namespace MusicProcessor.Commands
                 MessageBox.Show("Перед началом создания программы необходимо выбрать выходной файл с результатом обработки частотной программы.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
+            if (_mainViewModel.UseCustomSampleLength && _mainViewModel.SampleLength <= 0)
+            {
+                MessageBox.Show("Установленная длина сэмпла должна быть больше 0 мс.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
             _mainViewModel.ProgramCreationStart = true;
             RaiseOnCanExecuteChanged();
@@ -73,7 +78,7 @@ namespace MusicProcessor.Commands
                         return;
                     }
 
-                    AudioPipeline audioPipeline = new AudioPipeline(_mainViewModel.Library, result, _mainViewModel);
+                    AudioPipeline audioPipeline = new AudioPipeline(_mainViewModel.Library, result, _mainViewModel, _mainViewModel.UseCustomSampleLength);
                     audioPipeline.Process(_mainViewModel.SaveProgramFile);
                 }
                 catch (Exception ex)
