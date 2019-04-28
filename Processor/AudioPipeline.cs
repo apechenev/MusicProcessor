@@ -46,7 +46,7 @@ namespace MusicProcessor.Processor
 
                         using (MediaFoundationReader pcmStream = new MediaFoundationReader(path))
                         {
-                            double sampleLengthInMs = _useCustomSampleLength ? pair.Item2 : pcmStream.TotalTime.Milliseconds; // miliseconds
+                            double sampleLengthInMs = _useCustomSampleLength ? pair.Item2 : pcmStream.TotalTime.TotalMilliseconds; // miliseconds
                             while (sampleLengthInMs > 0)
                             {
                                 pcmStream.CurrentTime = TimeSpan.FromMilliseconds(sampleLengthInMs);
